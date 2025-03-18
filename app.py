@@ -16,14 +16,14 @@ with open('config.json') as config_file:
 logging_level = getattr(logging, config.get('logging_level', 'INFO').upper(), logging.INFO)
 logging.basicConfig(level=logging_level)
 
-# Get the sub-path from the config
 sub_path = config.get('proxy_path', '')
 
 
 def call_webhook(script, data):
-    result = subprocess.run(['python', script], input=json.dumps(data), text=True, capture_output=True)
+    result = subprocess.run(['python3', script], input=json.dumps(data), text=True, capture_output=True, cwd='scripts')
     logging.debug(result.stdout)
     logging.info(result.stderr)
+    logging.debug(result.returncode)
 
     try:
         parsed_output = json.loads(result.stdout)
@@ -32,10 +32,10 @@ def call_webhook(script, data):
 
     return result.returncode, parsed_output
 
+
 # Dynamically create routes
 for route_config in config['routes']:
     def create_route(route):
-        @app.route(f'{sub_path}/{route["incoming_url"]}/<path:path>', methods=route['methods'])
         def handle_webhook(path):
             data = request.get_data(as_text=True)
             query_params = request.args.to_dict()
@@ -49,7 +49,7 @@ for route_config in config['routes']:
             }
             logging.debug(f"Combined Data: {combined_data}")
             rc, output = call_webhook(route['webhook_script'], combined_data)
-            if rc:
+            if rc == 0:
                 logging.info(f"Webhook success: {route['webhook_script']}")
                 if "redirect_url_success" in output:
                     return redirect(output['redirect_url_success'])
@@ -63,14 +63,18 @@ for route_config in config['routes']:
 
                 # By default, we use the config
                 return redirect(route['outgoing_url_failure'])
+
         return handle_webhook
 
-    app.add_url_rule(sub_path + route_config['incoming_url'], view_func=create_route(route_config))
+
+    app.add_url_rule(f'{sub_path}/{route_config["incoming_url"]}/<path:path>', view_func=create_route(route_config))
+
 
 # Serve static files
-@app.route('/static/<path:filename>')
+@app.route('/static/<filename>')
 def serve_static(filename):
     return send_from_directory('static', filename + '.html')
+
 
 if __name__ == '__main__':
     app.run(port=config.get('port', 5001), debug=(logging_level == logging.DEBUG))
