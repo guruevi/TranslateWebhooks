@@ -1,0 +1,7 @@
+{
+  "semaphore_url": "https://yourhost/semaphore/",
+  "token": "something_random",
+  "logging_level": "ERROR",
+  "project": 1,
+  "template": 1
+}

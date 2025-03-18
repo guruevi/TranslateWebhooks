@@ -1,0 +1,14 @@
+{
+  "proxy_path": "/TranslateWebHooks",
+  "logging_level": "DEBUG",
+  "port": 5001,
+  "routes": [
+    {
+      "incoming_url": "noco2semaphore",
+      "methods": ["GET","POST"],
+      "webhook_script": "noco2semaphore.py",
+      "outgoing_url_success": "/static/200",
+      "outgoing_url_failure": "/static/500"
+    }
+  ]
+}
